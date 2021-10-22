@@ -1,9 +1,13 @@
 package org.jimtough.aws.lambda.s3sns;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -20,22 +24,24 @@ public class PatientCheckoutLambda {
 	private final AmazonSNS sns = AmazonSNSClientBuilder.defaultClient();
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
-	public void handler(S3Event event) {
+	public void handler(S3Event event, Context context) {
+		final LambdaLogger logger = context.getLogger();
 		event.getRecords().forEach(record->{
 			try (
 				S3ObjectInputStream inputStream = s3
 						.getObject(record.getS3().getBucket().getName(), record.getS3().getObject().getKey())
 						.getObjectContent()
 			) {
-				System.out.println("Reading data from S3");
+				logger.log("Reading data from S3");
 				List<PatientCheckoutEvent> patientCheckoutEvents =
 						Arrays.asList(objectMapper.readValue(inputStream, PatientCheckoutEvent[].class));
-				// NOTE: System.out output will be logged in Cloudwatch Logs
-				System.out.println(patientCheckoutEvents);
-				System.out.println("Publishing message to SNS");
+				logger.log(patientCheckoutEvents.toString());
+				logger.log("Publishing message to SNS");
 				publishMessageToSNS(patientCheckoutEvents);
 			} catch (IOException e) {
-				e.printStackTrace();
+				StringWriter stringWriter = new StringWriter();
+				e.printStackTrace(new PrintWriter(stringWriter));
+				logger.log(stringWriter.toString());
 			}
 		});
 	}
