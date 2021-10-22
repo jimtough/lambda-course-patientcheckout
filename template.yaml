@@ -13,6 +13,8 @@ Globals:
     Timeout: 20
 
 Resources:
+  PatientCheckoutDLQ:
+    Type: AWS::SNS::Topic
   PatientCheckoutBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -27,6 +29,9 @@ Resources:
       Handler: org.jimtough.aws.lambda.s3sns.PatientCheckoutLambda::handler
       Architectures:
         - x86_64
+      DeadLetterQueue:
+        Type: SNS
+        TargetArn: !Ref PatientCheckoutDLQ
       Policies:
         - S3ReadPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
@@ -35,6 +40,8 @@ Resources:
       Environment:
         Variables:
           PATIENT_CHECKOUT_TOPIC: !Ref PatientCheckoutTopic
+      EventInvokeConfig:
+        MaximumRetryAttempts: 0
       Events:
         S3Event:
           Type: S3
@@ -55,3 +62,17 @@ Resources:
           Type: SNS
           Properties:
             Topic: !Ref PatientCheckoutTopic
+
+  ErrorHandlingLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      # CodeUri corresponds to the subdirectory where the Java code lives within this project
+      CodeUri: patientcheckout
+      Handler: org.jimtough.aws.lambda.s3sns.errorhandling.ErrorHandler::handler
+      Architectures:
+        - x86_64
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref PatientCheckoutDLQ

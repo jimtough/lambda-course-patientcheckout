@@ -41,6 +41,7 @@ public class PatientCheckoutLambda {
 				publishMessageToSNS(patientCheckoutEvents);
 			} catch (IOException e) {
 				logger.error("exception caught", e);
+				throw new RuntimeException("Error while processing S3 event", e);
 			}
 		});
 	}
