@@ -1,0 +1,19 @@
+<Configuration status="WARN">
+	<!--
+	REFERENCE: https://docs.aws.amazon.com/lambda/latest/dg/java-logging.html#java-logging-log4j2
+	-->
+	<Appenders>
+		<Lambda name="Lambda">
+			<PatternLayout>
+				<pattern>%d{yyyy-MM-dd HH:mm:ss} %X{AWSRequestId} %-5p %c{1} - %m%n</pattern>
+			</PatternLayout>
+		</Lambda>
+	</Appenders>
+	<Loggers>
+		<Root level="INFO">
+			<AppenderRef ref="Lambda"/>
+		</Root>
+		<Logger name="software.amazon.awssdk" level="WARN" />
+		<Logger name="software.amazon.awssdk.request" level="DEBUG" />
+	</Loggers>
+</Configuration>
