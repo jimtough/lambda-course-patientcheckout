@@ -8,6 +8,8 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
+    Runtime: java11
+    MemorySize: 512
     Timeout: 20
 
 Resources:
@@ -23,13 +25,13 @@ Resources:
       # CodeUri corresponds to the subdirectory where the Java code lives within this project
       CodeUri: patientcheckout
       Handler: org.jimtough.aws.lambda.s3sns.PatientCheckoutLambda::handler
-      Runtime: java11
       Architectures:
         - x86_64
-      MemorySize: 512
       Policies:
         - S3ReadPolicy:
             BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt PatientCheckoutTopic.TopicName
       Environment:
         Variables:
           PATIENT_CHECKOUT_TOPIC: !Ref PatientCheckoutTopic
@@ -39,3 +41,17 @@ Resources:
           Properties:
             Bucket: !Ref PatientCheckoutBucket
             Events: s3:ObjectCreated:*
+
+  BillManagementLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      # CodeUri corresponds to the subdirectory where the Java code lives within this project
+      CodeUri: patientcheckout
+      Handler: org.jimtough.aws.lambda.s3sns.BillManagementLambda::handler
+      Architectures:
+        - x86_64
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref PatientCheckoutTopic
