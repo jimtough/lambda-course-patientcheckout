@@ -8,11 +8,15 @@ import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.amazonaws.services.sns.AmazonSNS;
+import com.amazonaws.services.sns.AmazonSNSClientBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PatientCheckoutLambda {
 
 	private final AmazonS3 s3 = AmazonS3ClientBuilder.defaultClient();
+	private final AmazonSNS sns = AmazonSNSClientBuilder.defaultClient();
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	public void handler(S3Event event) {
@@ -25,6 +29,15 @@ public class PatientCheckoutLambda {
 						Arrays.asList(objectMapper.readValue(inputStream, PatientCheckoutEvent[].class));
 				// NOTE: System.out output will be logged in Cloudwatch Logs
 				System.out.println(patientCheckoutEvents);
+				patientCheckoutEvents.forEach(checkoutEvent->{
+					try {
+						sns.publish(
+							System.getenv("PATIENT_CHECKOUT_TOPIC"),
+							objectMapper.writeValueAsString(checkoutEvent));
+					} catch (JsonProcessingException e) {
+						e.printStackTrace();
+					}
+				});
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
