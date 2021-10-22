@@ -27,10 +27,12 @@ public class PatientCheckoutLambda {
 						.getObject(record.getS3().getBucket().getName(), record.getS3().getObject().getKey())
 						.getObjectContent()
 			) {
+				System.out.println("Reading data from S3");
 				List<PatientCheckoutEvent> patientCheckoutEvents =
 						Arrays.asList(objectMapper.readValue(inputStream, PatientCheckoutEvent[].class));
 				// NOTE: System.out output will be logged in Cloudwatch Logs
 				System.out.println(patientCheckoutEvents);
+				System.out.println("Publishing message to SNS");
 				publishMessageToSNS(patientCheckoutEvents);
 			} catch (IOException e) {
 				e.printStackTrace();
