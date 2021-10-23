@@ -76,3 +76,20 @@ Resources:
           Type: SNS
           Properties:
             Topic: !Ref PatientCheckoutDLQ
+
+  ClaimManagementQueue:
+    Type: AWS::SQS::Queue
+  ClaimManagementLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      # CodeUri corresponds to the subdirectory where the Java code lives within this project
+      CodeUri: patientcheckout
+      Handler: org.jimtough.aws.lambda.sqs.ClaimManagementLambda::handler
+      Architectures:
+        - x86_64
+      Events:
+        ClaimEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ClaimManagementQueue.Arn
+            BatchSize: 10
